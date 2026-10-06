@@ -1,7 +1,7 @@
 # How we work together (4 people, 3 days)
 
 ## Branches & PRs
-- `main` is always runnable. **No direct pushes to `main`.** Everything goes through a PR.
+- `main` is always runnable. **No direct pushes to `main`.** Everything goes through a PR. (GitHub Free can't enforce this on a private repo, so it relies on all of us.)
 - Branch names: `<type>/<short-topic>`, e.g. `fix/awake-app-names`, `feat/verify-before-done`,
   `docs/failure-markor`, `runs/contacts-add`.
 - Small PRs (< ~200 lines). Link the issue: `Closes #12`.

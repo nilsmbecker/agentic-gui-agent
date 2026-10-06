@@ -13,3 +13,4 @@ Short record of decisions, so nobody has to re-discuss them. Newest at the botto
 | 2026-10-06 | Minimal stdlib HTTP client, no agent framework | Course convention (D1/D2): auditable, every request visible in logs |
 | 2026-10-06 | No fixed roles; work is split via issues/workstreams | Team preference |
 | 2026-10-06 | Recordings on a shared drive, not in git | Video size |
+| 2026-10-06 | `main` protected by team convention only (PR + 1 review), not by GitHub settings | Branch protection needs GitHub Pro for private repos |
