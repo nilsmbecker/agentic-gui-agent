@@ -58,4 +58,6 @@ Look at `runs/SystemWifiTurnOff/<run_id>/steps.jsonl` and the `step_*.png` scree
 | AndroidWorld hangs on connect | Emulator must be started with `-grpc 8554` (the script does this) |
 | Model call times out | First call loads the model (~30 s). Raise `LLM_TIMEOUT_S`; check `ollama ps` |
 | Mac runs out of memory | Close browser/IDE, start emulator with `-no-window`, use `Q4_K_M` |
+| Setup crashes: `monkey ... exit status 251`, "SYS_KEYS has no physical keys" | Set `hw.keyboard=yes` in `~/.android/avd/AndroidWorldAvd.avd/config.ini`, restart the emulator, re-run setup (`setup_mac.sh` now does this) |
+| `avdmanager`: "Valid system image paths are: null" | Use `~/Library/Android/sdk/cmdline-tools/latest/bin/avdmanager`, not Homebrew's (`setup_mac.sh` now does this) |
 | Recording stops after 3 min | Emulator limit. Use macOS screen recording (⌘⇧5) on the emulator window |

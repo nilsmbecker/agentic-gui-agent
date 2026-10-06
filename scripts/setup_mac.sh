@@ -29,6 +29,9 @@ echo "==> AVD $AVD"
 if ! "$SDK/emulator/emulator" -list-avds | grep -qx "$AVD"; then
   echo "no" | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd -n "$AVD" -k "$IMAGE" -d pixel_6
 fi
+# Without a hardware keyboard, `adb shell monkey` (used by AndroidWorld to launch apps)
+# aborts with "SYS_KEYS has no physical keys" during --perform-emulator-setup.
+sed -i '' 's/^hw.keyboard=no$/hw.keyboard=yes/' "$HOME/.android/avd/$AVD.avd/config.ini"
 
 echo "==> Submodules"
 git submodule update --init
