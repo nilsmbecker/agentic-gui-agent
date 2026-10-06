@@ -1,0 +1,16 @@
+[submodule "third_party/android_world"]
+	path = third_party/android_world
+	url = https://github.com/google-research/android_world
+	shallow = true
+	ignore = untracked
+[submodule "third_party/gelab-zero"]
+	path = third_party/gelab-zero
+	url = https://github.com/stepfun-ai/gelab-zero
+	shallow = true
+# Reference reading only (~1.2 GB). Skipped by `git submodule update --init`;
+# fetch explicitly with: git submodule update --init --checkout third_party/ai-agent-book
+[submodule "third_party/ai-agent-book"]
+	path = third_party/ai-agent-book
+	url = https://github.com/bojieli/ai-agent-book
+	shallow = true
+	update = none

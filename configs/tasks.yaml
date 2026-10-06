@@ -1,0 +1,24 @@
+# AndroidWorld tasks we evaluate. Requirement: >= 3 tasks covering all 3 tiers,
+# 3 runs each, screen recording per run.
+# `primary` = proposed final selection (confirm by Wed noon, see docs/PLAN.md M1).
+# `backup`  = swap in if a primary task turns out broken on the ARM emulator.
+# complexity = AndroidWorld's own difficulty score (max steps default = 10 x complexity).
+
+tiers:
+  warm_up:
+    description: single app, few steps, state is directly checkable
+    primary: SystemWifiTurnOff          # settings, complexity 1.0
+    backup: [SystemBrightnessMax, OpenAppTaskEval, ClockStopWatchRunning]
+
+  real_work:
+    description: one app, form filling / text entry, several screens
+    primary: ContactsAddContact         # contacts, 1.2
+    backup: [ExpenseAddSingle, MarkorCreateNote, SimpleCalendarAddOneEvent]
+
+  multi_app_memory:
+    description: carry a value from one app into another (tests lost_value / wrong_app)
+    primary: MarkorCreateNoteAndSms     # markor + simple sms messenger, 1.8
+    backup: [SimpleSmsSendClipboardContent, MarkorTranscribeReceipt, ExpenseAddMultipleFromMarkor]
+
+runs_per_task: 3
+seed: 0   # run i uses seed+i -> every team member gets identical task parameters

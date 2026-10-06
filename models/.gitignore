@@ -1,0 +1,3 @@
+# Model weights are downloaded by scripts/setup_model.sh, never committed.
+*
+!.gitignore

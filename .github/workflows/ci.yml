@@ -1,0 +1,20 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Only the GELab parser is needed for unit tests (no emulator, no android_world).
+      - run: git submodule update --init --depth 1 third_party/gelab-zero
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - run: ruff check src scripts tests
+      - run: ruff format --check src scripts tests
+      - run: pytest -q

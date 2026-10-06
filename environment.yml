@@ -1,0 +1,12 @@
+# conda env create -f environment.yml && conda activate gui-agent
+# Python 3.11: android_world pins numpy 1.26 / matplotlib 3.6 (no wheels for 3.13).
+name: gui-agent
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - -r third_party/android_world/requirements.txt
+      - -e third_party/android_world
+      - -e .[dev]
