@@ -21,11 +21,13 @@ export JAVA_HOME="$(brew --prefix openjdk@17)/libexec/openjdk.jdk/Contents/Home"
 echo "==> Android SDK into $SDK"
 mkdir -p "$SDK"
 yes | sdkmanager --sdk_root="$SDK" --licenses >/dev/null || true
-sdkmanager --sdk_root="$SDK" "platform-tools" "emulator" "platforms;android-33" "$IMAGE"
+sdkmanager --sdk_root="$SDK" "cmdline-tools;latest" "platform-tools" "emulator" "platforms;android-33" "$IMAGE"
 
 echo "==> AVD $AVD"
+# Use the avdmanager inside $SDK: Homebrew's copy looks in its own SDK root and
+# fails with "Package path is not valid. Valid system image paths are: null".
 if ! "$SDK/emulator/emulator" -list-avds | grep -qx "$AVD"; then
-  echo "no" | ANDROID_SDK_ROOT="$SDK" avdmanager create avd -n "$AVD" -k "$IMAGE" -d pixel_6
+  echo "no" | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd -n "$AVD" -k "$IMAGE" -d pixel_6
 fi
 
 echo "==> Submodules"
