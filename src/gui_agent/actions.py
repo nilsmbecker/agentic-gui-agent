@@ -45,6 +45,18 @@ def denormalize(point: list[int] | tuple[int, int], screen_w: int, screen_h: int
     return min(max(px, 0), screen_w - 1), min(max(py, 0), screen_h - 1)
 
 
+# Actions that are legitimately repeated (scrolling a long list, waiting for a load).
+_REPEATABLE = {"SLIDE", "WAIT"}
+_IDENTITY_KEYS = ("action", "point", "point1", "point2", "value")
+
+
+def is_repeat(prev: dict | None, action: dict) -> bool:
+    """True if `action` is exactly the previous action again (loop evidence, D4 bounded recovery)."""
+    if prev is None or (action.get("action") or "").upper() in _REPEATABLE:
+        return False
+    return all(prev.get(k) == action.get(k) for k in _IDENTITY_KEYS)
+
+
 def to_android_actions(action: dict, screen_w: int, screen_h: int) -> Translation:
     """Map one parsed GELab action dict (from Parser0920Summary.str2action) to AndroidWorld."""
     kind = (action.get("action") or action.get("action_type") or "").upper()

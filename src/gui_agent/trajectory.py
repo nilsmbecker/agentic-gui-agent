@@ -26,8 +26,11 @@ class TrajectoryLogger:
             shot = f"step_{step:03d}.png"
             Image.fromarray(pixels.astype("uint8")).save(self.dir / shot)
             record = {**record, "screenshot": shot}
-        with self._steps.open("a") as f:
+        # utf-8 explicitly: GELab often answers in Chinese, and Windows defaults to cp1252.
+        with self._steps.open("a", encoding="utf-8") as f:
             f.write(json.dumps({"step": step, "t": time.time(), **record}, ensure_ascii=False) + "\n")
 
     def write_summary(self, summary: dict) -> None:
-        (self.dir / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
+        (self.dir / "summary.json").write_text(
+            json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"
+        )

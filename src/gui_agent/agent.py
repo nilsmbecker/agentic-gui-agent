@@ -10,14 +10,17 @@ from __future__ import annotations
 from android_world.agents.base_agent import AgentInteractionResult, EnvironmentInteractingAgent
 from android_world.env import adb_utils, interface, json_action
 
-from gui_agent.actions import to_android_actions
+from gui_agent.actions import is_repeat, to_android_actions
 from gui_agent.config import Settings
 from gui_agent.gelab import Parser0920Summary, pixels_to_data_url
 from gui_agent.llm_client import LLMClient
 from gui_agent.trajectory import TrajectoryLogger
 
-# Bounded recovery (D4): give up after this many unparseable model replies in a row.
-MAX_CONSECUTIVE_PARSE_FAILURES = 3
+# Bounded recovery (D4): give up after this many failed steps in a row
+# (unparseable reply or model/server error).
+MAX_CONSECUTIVE_FAILURES = 3
+# Loop detection (D4): stop when the model emits the identical action this many times in a row.
+MAX_REPEATED_ACTIONS = 3
 
 
 class GelabAgent(EnvironmentInteractingAgent):
@@ -41,7 +44,8 @@ class GelabAgent(EnvironmentInteractingAgent):
         self._environments: list[dict] = []
         self._actions: list[dict] = []
         self._step = 0
-        self._parse_failures = 0
+        self._failures = 0
+        self._repeats = 0
 
     def reset(self, go_home: bool = False) -> None:
         super().reset(go_home)
@@ -60,26 +64,25 @@ class GelabAgent(EnvironmentInteractingAgent):
         messages = self.parser.env2messages4ask(
             task=goal, environments=self._environments, actions=self._actions
         )
-        reply = self.llm.chat(messages)
-        record: dict = {
-            "goal": goal,
-            "model_output": reply.text,
-            "latency_s": round(reply.latency_s, 2),
-            "usage": reply.usage,
-        }
+        record: dict = {"goal": goal}
+        try:
+            reply = self.llm.chat(messages)
+        except (RuntimeError, OSError, ValueError, KeyError) as e:  # OSError covers URLError/timeouts
+            record["llm_error"] = f"{type(e).__name__}: {e}"
+            return self._fail(record, pixels, "llm_errors")
+        record.update(model_output=reply.text, latency_s=round(reply.latency_s, 2), usage=reply.usage)
 
         try:
             parsed = self.parser.str2action(reply.text)
             parsed.setdefault("explain", "")
             parsed = self.parser.action2action(parsed)  # validates required fields
         except (AssertionError, ValueError, KeyError) as e:
-            self._environments.pop()  # keep the env/action lists aligned
-            self._parse_failures += 1
-            record.update(parse_error=str(e), parse_failures=self._parse_failures)
-            done = self._parse_failures >= MAX_CONSECUTIVE_PARSE_FAILURES
-            return self._finish(record, pixels, done)
+            record["parse_error"] = str(e)
+            return self._fail(record, pixels, "parse_errors")
 
-        self._parse_failures = 0
+        self._failures = 0
+        prev = self._actions[-1] if self._actions else None
+        self._repeats = self._repeats + 1 if is_repeat(prev, parsed) else 1
         self._actions.append(parsed)
         translation = to_android_actions(parsed, width, height)
         record.update(
@@ -87,7 +90,12 @@ class GelabAgent(EnvironmentInteractingAgent):
             executed=translation.json_actions,
             swipe=vars(translation.swipe) if translation.swipe else None,
             note=translation.note,
+            repeats=self._repeats,
         )
+        if self._repeats >= MAX_REPEATED_ACTIONS:
+            # Don't execute it a 3rd time: end the episode with evidence for the `loop` tag.
+            record.update(loop_detected=True, stop_reason="loop")
+            return self._finish(record, pixels, True)
 
         # 3. Act
         try:
@@ -101,7 +109,19 @@ class GelabAgent(EnvironmentInteractingAgent):
             record["execution_error"] = f"{type(e).__name__}: {e}"
 
         # 4. Report done
+        if translation.done:
+            record["stop_reason"] = (parsed.get("action") or "").lower()  # "complete" or "abort"
         return self._finish(record, pixels, translation.done)
+
+    def _fail(self, record: dict, pixels, reason: str) -> AgentInteractionResult:
+        """A step that produced no executable action; ends the episode after too many in a row."""
+        self._environments.pop()  # keep GELab's invariant: len(environments) == len(actions) + 1
+        self._failures += 1
+        record["consecutive_failures"] = self._failures
+        done = self._failures >= MAX_CONSECUTIVE_FAILURES
+        if done:
+            record["stop_reason"] = reason
+        return self._finish(record, pixels, done)
 
     def _finish(self, record: dict, pixels, done: bool) -> AgentInteractionResult:
         record["done"] = done
