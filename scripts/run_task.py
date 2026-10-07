@@ -1,11 +1,11 @@
 """Run one AndroidWorld task N times with the GELab-Zero agent and log everything.
 
 Examples:
-  python scripts/run_task.py --task SystemWifiTurnOff --runs 3 --record
+  python scripts/run_task.py --task SystemWifiTurnOn --runs 3 --record
   python scripts/run_task.py --task ContactsAddContact --runs 1 --max-steps 15
   python scripts/run_task.py --perform-emulator-setup   # ONCE per fresh emulator
 
-Outputs (gitignored):  runs/<task>/<run_id>/{steps.jsonl, step_*.png, summary.json, recording.webm}
+Outputs (gitignored):  runs/<task>/<run_id>/{steps.jsonl, step_*.png, summary.json, recording_part*.webm}
                        runs/results.csv  (one row per run, appended)
 """
 
@@ -16,7 +16,11 @@ import contextlib
 import csv
 import os
 import random
+import shutil
 import subprocess
+import sys
+import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -31,23 +35,57 @@ from gui_agent.trajectory import TrajectoryLogger  # noqa: E402
 
 
 class EmulatorRecorder:
-    """Records the emulator screen via the emulator console (max 180 s per file)."""
+    """Records the emulator screen via the emulator console (works on macOS and Windows).
 
-    def __init__(self, adb: str, port: int, out: Path):
+    The emulator caps one recording at 180 s, so a background thread rotates to a new
+    part every PART_S seconds: recording_part1.webm, recording_part2.webm, ...
+    Parts are written to a temp dir first because the console command splits on spaces
+    (our repo path may contain some), then moved into the run folder.
+    """
+
+    PART_S = 170
+
+    def __init__(self, adb: str, port: int, out_dir: Path):
         self.base = [adb, "-s", f"emulator-{port}", "emu", "screenrecord"]
-        self.out = out
+        self.out_dir = out_dir
+        self.tmp = Path(tempfile.mkdtemp(prefix="gui_agent_rec_"))
+        self.parts: list[str] = []
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._rotate, daemon=True)
+
+    def _start_part(self) -> None:
+        name = f"recording_part{len(self.parts) + 1}.webm"
+        subprocess.run([*self.base, "start", "--time-limit", "180", str(self.tmp / name)], check=False)
+        self.parts.append(name)
+
+    def _rotate(self) -> None:
+        self._start_part()
+        while not self._stop.wait(self.PART_S):
+            subprocess.run([*self.base, "stop"], check=False)
+            self._start_part()
 
     def __enter__(self):
-        subprocess.run([*self.base, "start", "--time-limit", "180", str(self.out)], check=False)
+        self._thread.start()
         return self
 
     def __exit__(self, *exc):
+        self._stop.set()
+        self._thread.join()
         subprocess.run([*self.base, "stop"], check=False)
+        for name in self.parts:
+            for _ in range(10):  # the emulator may still be finalising the file
+                try:
+                    shutil.move(self.tmp / name, self.out_dir / name)
+                    break
+                except (PermissionError, FileNotFoundError):
+                    time.sleep(1)
+            else:
+                print(f"  ! recording {name} not found in {self.tmp}")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--task", help="AndroidWorld task class name, e.g. SystemWifiTurnOff")
+    ap.add_argument("--task", help="AndroidWorld task class name, e.g. SystemWifiTurnOn")
     ap.add_argument("--runs", type=int, default=3)
     ap.add_argument("--max-steps", type=int, default=None, help="default: 10 x task complexity")
     ap.add_argument("--seed", type=int, default=0, help="run i uses seed+i for task params")
@@ -84,18 +122,22 @@ def main() -> None:
         task.initialize_task(env)
         print(f"\n=== {args.task} run {i + 1}/{args.runs} | max {max_steps} steps\nGoal: {task.goal}")
 
-        start, steps, agent_done = time.time(), 0, False
-        recorder = EmulatorRecorder(s.adb_path, s.emulator_console_port, logger.dir / "recording.webm")
-        with recorder if args.record else contextlib.nullcontext():
+        start, steps, stop_reason = time.time(), 0, "max_steps"
+        recorder = EmulatorRecorder(s.adb_path, s.emulator_console_port, logger.dir) if args.record else None
+        with recorder or contextlib.nullcontext():
             for steps in range(1, max_steps + 1):
                 result = agent.step(task.goal)
                 a = result.data.get("action", {})
-                print(f"  [{steps:02d}] {a.get('action', 'PARSE_ERROR')}: {a.get('explain', '')[:80]}")
+                kind = a.get("action") or ("LLM_ERROR" if "llm_error" in result.data else "PARSE_ERROR")
+                print(f"  [{steps:02d}] {kind}: {a.get('explain', '')[:80]}")
                 if result.done:
-                    agent_done = True
+                    stop_reason = result.data.get("stop_reason", "unknown")
                     break
 
         score = task.is_successful(env)
+        # Only COMPLETE counts as "the agent said it's done" (false_done = said done, but score != 1).
+        # Episodes ended by ABORT, loop detection or repeated errors are not.
+        agent_done = stop_reason == "complete"
         summary = {
             "task": args.task,
             "run": i + 1,
@@ -104,11 +146,15 @@ def main() -> None:
             "success": bool(agent_done and score == 1),
             "score": score,
             "agent_said_done": agent_done,
+            "stop_reason": stop_reason,
             "steps": steps,
             "max_steps": max_steps,
             "seconds": round(time.time() - start, 1),
             "model": s.llm_model,
+            "quant": s.llm_quant,
+            "platform": sys.platform,
             "commit": _git_commit(),
+            "recordings": ";".join(recorder.parts) if recorder else "",
             "run_dir": str(logger.dir.relative_to(s.runs_dir)),
         }
         logger.write_summary(summary)
@@ -125,7 +171,7 @@ def _git_commit() -> str:
     dirty = subprocess.run(
         ["git", "status", "--porcelain", "--", "src"], capture_output=True, text=True
     ).stdout
-    return sha.strip() + ("-dirty" if dirty.strip() else "")
+    return (sha.strip() or "no-git") + ("-dirty" if dirty.strip() else "")
 
 
 def _append_csv(path: Path, row: dict) -> None:

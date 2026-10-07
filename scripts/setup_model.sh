@@ -26,4 +26,4 @@ else
   ollama create -q "$QUANT" "$NAME" -f Modelfile
 fi
 ollama list | grep "$NAME"
-echo "Model ready. LLM_MODEL=$NAME in .env"
+echo "Model ready. In .env: LLM_MODEL=$NAME and LLM_QUANT=$QUANT"
