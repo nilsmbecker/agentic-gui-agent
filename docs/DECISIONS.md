@@ -14,3 +14,5 @@ Short record of decisions, so nobody has to re-discuss them. Newest at the botto
 | 2026-10-06 | No fixed roles; work is split via issues/workstreams | Team preference |
 | 2026-10-06 | Recordings on a shared drive, not in git | Video size |
 | 2026-10-06 | `main` protected by team convention only (PR + 1 review), not by GitHub settings | Branch protection needs GitHub Pro for private repos |
+| 2026-10-07 | Task selection taken only from the D1 "Tasks" slide boxes: `SystemWifiTurnOn` / `MarkorCreateNote` / `MarkorCreateNoteAndSms` | `SystemWifiTurnOff` isn't on the slide, and the slide puts `ContactsAddContact` in warm-up, which left the real-work box empty |
+| 2026-10-07 | Support Windows (x86_64 emulator image, PowerShell scripts) alongside Mac (arm64) | Not every team member has a Mac. Same commit, seed and quant keep results comparable; `summary.json` records the platform |

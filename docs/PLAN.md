@@ -1,6 +1,6 @@
 # Project plan: GELab-Zero agent on AndroidWorld
 
-**Team:** 4 people, all on Apple Silicon Macs · **No fixed roles:** work is split by GitHub issues
+**Team:** 4 people on Apple Silicon Macs and Windows PCs · **No fixed roles:** work is split by GitHub issues
 **Deadline:** Friday 9 Oct 2026 (demo + presentation) · **Plan written:** Tue 6 Oct 2026
 
 ---
@@ -36,7 +36,7 @@ as a success.
 
 ## 2. Milestones
 
-Critical path: **emulator + AndroidWorld running on ARM Macs**. Everything else waits on it,
+Critical path: **emulator + AndroidWorld running on our Macs and PCs**. Everything else waits on it,
 so all 4 people do M0 in parallel tonight and the first machine that works becomes the reference.
 
 ### M0: Environment works (Tue 6 Oct, evening)
@@ -47,7 +47,7 @@ so all 4 people do M0 in parallel tonight and the first machine that works becom
 - [ ] **Exit criterion:** ≥ 2 machines fully green. If nobody gets there by Wed 10:00 → see Risk R1.
 
 ### M1: First end-to-end run (Wed 7 Oct, by 14:00)
-- [ ] `run_task.py --task SystemWifiTurnOff --runs 1` completes with a logged trajectory
+- [ ] `run_task.py --task SystemWifiTurnOn --runs 1` completes with a logged trajectory
 - [ ] Fix mapping bugs in `actions.py`. Likely issues: AWAKE app names, TYPE focus, SLIDE direction
 - [ ] Measure seconds per step → decide max steps per task and q8 vs. Q4
 - [ ] Try each `primary` task in `configs/tasks.yaml` once. Swap in a backup if a task can't run on ARM
@@ -95,7 +95,7 @@ wrong**, and tag it:
 | `wrong_app` | Opens or works in the wrong app | `AWAKE` value ≠ target app | goal clarity / constraints |
 | `false_done` | Says `COMPLETE`, but the task checker says fail | `agent_said_done=true, success=false` | independent verification |
 
-Plus our own: `parse_error` (output not in GELab format), `loop` (repeats an action), `env` (an emulator/infra problem, not the agent's fault).
+Plus our own: `parse_error` (output not in GELab format, `parse_error` in the step), `loop` (repeats an action, `loop_detected=true` / `stop_reason=loop`), `env` (an emulator/infra problem, not the agent's fault, e.g. `llm_error` in the step).
 
 ---
 
