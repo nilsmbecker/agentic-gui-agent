@@ -32,17 +32,61 @@ AndroidWorld task ──goal──▶ GelabAgent.step()
                             ◀─ AgentInteractionResult(done, data) ─ logged to runs/<task>/<run>/
 ```
 
-## Quick start (Apple Silicon Mac)
+## Quick start
 
+Works on **macOS (Apple Silicon)** and **Windows 10/11 (x86_64)**. Same 7 steps, different scripts.
+
+**Prerequisites (both):** git, conda (Miniforge or Anaconda), the [Ollama app](https://ollama.com/download)
+running, ~15 GB free disk, 16 GB+ RAM.
+- macOS: also [Homebrew](https://brew.sh).
+- Windows: also `winget` (built into Windows 11), and **Windows Hypervisor Platform** enabled
+  (*Turn Windows features on or off*, then reboot) so the emulator is hardware-accelerated.
+
+### macOS (bash / zsh)
 ```bash
 git clone --recurse-submodules <repo-url> && cd agentic-gui-agent
-bash scripts/setup_mac.sh            # Android SDK, emulator, AVD, conda env (~30 min, once)
+bash scripts/setup_mac.sh            # 1. Android SDK, arm64 emulator, AVD, conda env (~30 min, once)
 conda activate gui-agent
-bash scripts/setup_model.sh          # GELab-Zero → Ollama (once)
-bash scripts/start_emulator.sh       # separate terminal, keep open
-python scripts/run_task.py --perform-emulator-setup   # installs task apps (once per emulator)
-python scripts/check_setup.py
-python scripts/run_task.py --task SystemWifiTurnOff --runs 1
+bash scripts/setup_model.sh          # 2. GELab-Zero → Ollama (once)
+bash scripts/start_emulator.sh       # 3. separate terminal, keep open
+python scripts/run_task.py --perform-emulator-setup   # 4. installs task apps (once per emulator)
+python scripts/check_setup.py        # 5. everything should be ✔
+python scripts/run_task.py --task SystemWifiTurnOn --runs 1   # 6. first run
+python scripts/run_task.py --task SystemWifiTurnOn --runs 3 --record   # 7. evaluation run
 ```
 
+### Windows (PowerShell)
+```powershell
+git clone --recurse-submodules <repo-url>; cd agentic-gui-agent
+powershell -ExecutionPolicy Bypass -File scripts\setup_windows.ps1   # 1. SDK, x86_64 emulator, AVD, conda env (once)
+# open a NEW terminal (PATH changed), then:
+conda activate gui-agent
+powershell -ExecutionPolicy Bypass -File scripts\setup_model.ps1     # 2. GELab-Zero → Ollama (once)
+powershell -ExecutionPolicy Bypass -File scripts\start_emulator.ps1  # 3. separate terminal, keep open
+python scripts\run_task.py --perform-emulator-setup   # 4. installs task apps (once per emulator)
+python scripts\check_setup.py        # 5. everything should be ✔
+python scripts\run_task.py --task SystemWifiTurnOn --runs 1   # 6. first run
+python scripts\run_task.py --task SystemWifiTurnOn --runs 3 --record   # 7. evaluation run
+```
+
+Downloaded the repo as a ZIP? The `third_party/` folders will be empty and the commit can't be
+recorded. Clone with `--recurse-submodules` instead.
+
+### Comparing results across machines
+Results are only comparable with the **same commit, seed and quant** (`LLM_QUANT` in `.env`).
+Macs run the arm64 emulator image and Windows runs x86_64, so `summary.json` records `platform` too.
+Mention it in the analysis if a failure only shows up on one platform.
+
 Details and troubleshooting: [docs/SETUP.md](docs/SETUP.md). How we work together: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Deliverables (course requirements, D1 slides)
+
+| Requirement | Where |
+|---|---|
+| One agent class with a single `step()` | `src/gui_agent/agent.py` |
+| ≥ 3 tasks, one from each slide box, 3 runs each | `configs/tasks.yaml` → `results/<task>/<run_id>/` |
+| Screen recording of every run | `recording*.webm` per run (team drive, linked in the analysis) |
+| Model name | `summary.json` (`model`, `quant`) |
+| Trajectory logs | `results/<task>/<run_id>/steps.jsonl` + screenshots |
+| Analysis of ≥ 1 failure | `docs/analysis/` |
+| Demo + presentation (10–30 min) | slides + backup demo video |
