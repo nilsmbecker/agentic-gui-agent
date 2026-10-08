@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/gui_agent/__init__.py
+src/gui_agent/actions.py
+src/gui_agent/agent.py
+src/gui_agent/config.py
+src/gui_agent/gelab.py
+src/gui_agent/llm_client.py
+src/gui_agent/trajectory.py
+src/gui_agent.egg-info/PKG-INFO
+src/gui_agent.egg-info/SOURCES.txt
+src/gui_agent.egg-info/dependency_links.txt
+src/gui_agent.egg-info/requires.txt
+src/gui_agent.egg-info/top_level.txt
+tests/test_actions.py

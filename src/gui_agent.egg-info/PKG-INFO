@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: gui-agent
+Version: 0.1.0
+Summary: GELab-Zero GUI agent on AndroidWorld - Agentic AI in Business (TUM)
+Requires-Python: >=3.11
+Requires-Dist: numpy
+Requires-Dist: pillow
+Requires-Dist: jsonlines
+Requires-Dist: megfile
+Requires-Dist: huggingface_hub
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: ruff; extra == "dev"

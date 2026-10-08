@@ -1,0 +1,9 @@
+numpy
+pillow
+jsonlines
+megfile
+huggingface_hub
+
+[dev]
+pytest
+ruff
