@@ -10,7 +10,7 @@ from __future__ import annotations
 from android_world.agents.base_agent import AgentInteractionResult, EnvironmentInteractingAgent
 from android_world.env import adb_utils, interface, json_action
 
-from gui_agent.actions import is_repeat, text_field_target, to_android_actions
+from gui_agent.actions import element_at, is_repeat, text_field_target, to_android_actions
 from gui_agent.config import Settings
 from gui_agent.feedback import changed_fraction, no_effect_hint
 from gui_agent.gelab import Parser0920Summary, parse_action, pixels_to_data_url, with_hints
@@ -69,12 +69,15 @@ class GelabAgent(EnvironmentInteractingAgent):
         # step_NNN.png keeps the real screen; model_image is what the model actually saw.
         record: dict = {"goal": goal, "model_image": [size, size] if size else [width, height]}
         if self._last_executed is not None:
-            before, last_action = self._last_executed
+            before, last_action, tap = self._last_executed
             change = changed_fraction(before, pixels)
+            element = element_at(state.ui_elements, *tap) if tap else None
+            if element:
+                record["tapped_element"] = {"label": element[0], "enabled": element[1]}
             times = 1
             if self._no_effect and is_repeat(self._no_effect[0], last_action):
                 times = self._no_effect[1] + 1
-            feedback = no_effect_hint(last_action, change, times)
+            feedback = no_effect_hint(last_action, change, times, element)
             self._no_effect = (last_action, times) if feedback else None
             record.update(screen_change=round(change, 5), feedback=feedback)
             if feedback:
@@ -126,7 +129,15 @@ class GelabAgent(EnvironmentInteractingAgent):
             return self._finish(record, pixels, True)
 
         # 3. Act
-        self._last_executed = (pixels, parsed)
+        tap = next(
+            (
+                (a["x"], a["y"])
+                for a in translation.json_actions
+                if a["action_type"] in ("click", "long_press")
+            ),
+            None,
+        )
+        self._last_executed = (pixels, parsed, tap)
         try:
             for kwargs in translation.json_actions:
                 self.env.execute_action(json_action.JSONAction(**kwargs))

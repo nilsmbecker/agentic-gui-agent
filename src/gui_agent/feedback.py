@@ -31,12 +31,15 @@ def changed_fraction(before: np.ndarray, after: np.ndarray) -> float:
     return float((diff > PIXEL_DELTA).mean())
 
 
-def no_effect_hint(last_action: dict, fraction: float, times: int = 1) -> str | None:
+def no_effect_hint(
+    last_action: dict, fraction: float, times: int = 1, element: tuple[str, bool] | None = None
+) -> str | None:
     """Hint for the next prompt if `last_action` barely changed the screen, else None.
 
     `times`: how often this same action in a row had no visible effect. Round 2 (2026-10-08)
     sent the same message after every repeat and the model kept repeating; round 3 names the
-    action and escalates.
+    action and escalates. `element`: (label, enabled) of the tapped element after the tap;
+    round 3 still read "no change" as "it failed", so round 4 says when the target is disabled.
     """
     kind = (last_action.get("action") or "").upper()
     if kind in _NO_FEEDBACK or fraction >= MIN_CHANGE:
@@ -44,6 +47,11 @@ def no_effect_hint(last_action: dict, fraction: float, times: int = 1) -> str | 
     point = last_action.get("point")
     where = f" at {point[0]},{point[1]}" if point else ""
     text = f"Your last action ({kind}{where}) did not visibly change the screen."
+    if element and not element[1]:
+        text += (
+            f" The element you tapped ('{element[0]}') is disabled (greyed out),"
+            " so tapping it again does nothing."
+        )
     if times > 1:
         text += (
             f" You have now done this {times} times without any visible effect; doing it again will not help."

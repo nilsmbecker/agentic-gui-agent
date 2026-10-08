@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from gui_agent.actions import denormalize, text_field_target, to_android_actions
+from gui_agent.actions import denormalize, element_at, text_field_target, to_android_actions
 
 W, H = 1080, 2400  # Pixel 6
 
@@ -90,3 +90,16 @@ def test_text_field_target_falls_back_to_largest_editable():
 
 def test_text_field_target_none_without_editable_fields():
     assert text_field_target([_el(0, 0, 10, 10, editable=False), _el(0, 0, 10, 10, visible=False)]) is None
+
+
+def _labelled(desc, x0, y0, x1, y1, enabled=True):
+    box = SimpleNamespace(x_min=x0, y_min=y0, x_max=x1, y_max=y1, area=(x1 - x0) * (y1 - y0))
+    return SimpleNamespace(content_description=desc, text=None, is_enabled=enabled, bbox_pixels=box)
+
+
+def test_element_at_picks_smallest_labelled_element_under_tap():
+    # Markor toolbar after saving: the Save icon is disabled (from the 2026-10-08 probe).
+    toolbar = _labelled("Toolbar", 0, 138, 1080, 264)
+    save = _labelled("Save", 765, 138, 870, 264, enabled=False)
+    assert element_at([toolbar, save], 810, 197) == ("Save", False)
+    assert element_at([toolbar, save], 100, 900) is None

@@ -40,3 +40,9 @@ def test_feedback_names_the_action_and_escalates_on_repeats():
     first = no_effect_hint(click, 0.0)
     assert "CLICK at 750,82" in first and "times" not in first
     assert "done this 2 times" in no_effect_hint(click, 0.0, times=2)
+
+
+def test_feedback_says_when_the_tapped_element_is_disabled():
+    click = {"action": "CLICK", "point": [750, 82]}
+    assert "('Save') is disabled" in no_effect_hint(click, 0.0, element=("Save", False))
+    assert "disabled" not in no_effect_hint(click, 0.0, element=("Save", True))

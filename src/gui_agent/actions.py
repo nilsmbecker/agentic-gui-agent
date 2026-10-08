@@ -77,6 +77,26 @@ def text_field_target(ui_elements) -> tuple[int, int] | None:
     return int(x), int(y)
 
 
+def element_at(ui_elements, x: int, y: int) -> tuple[str, bool] | None:
+    """(label, enabled) of the smallest labelled element under pixel (x, y), else None.
+
+    Used for feedback after a tap: Markor's save icon turning grey after saving is a ~240 px
+    change the model can't see, but the accessibility tree reports it as enabled=False.
+    """
+    hits = [
+        e
+        for e in ui_elements
+        if e.bbox_pixels is not None
+        and (e.content_description or e.text)
+        and e.bbox_pixels.x_min <= x <= e.bbox_pixels.x_max
+        and e.bbox_pixels.y_min <= y <= e.bbox_pixels.y_max
+    ]
+    if not hits:
+        return None
+    e = min(hits, key=lambda e: e.bbox_pixels.area)
+    return (e.content_description or e.text), e.is_enabled is not False
+
+
 def to_android_actions(action: dict, screen_w: int, screen_h: int) -> Translation:
     """Map one parsed GELab action dict (from Parser0920Summary.str2action) to AndroidWorld."""
     kind = (action.get("action") or action.get("action_type") or "").upper()
