@@ -12,7 +12,7 @@ from android_world.env import adb_utils, interface, json_action
 
 from gui_agent.actions import is_repeat, text_field_target, to_android_actions
 from gui_agent.config import Settings
-from gui_agent.gelab import Parser0920Summary, parse_action, pixels_to_data_url
+from gui_agent.gelab import Parser0920Summary, parse_action, pixels_to_data_url, with_hints
 from gui_agent.llm_client import LLMClient
 from gui_agent.trajectory import TrajectoryLogger
 
@@ -63,7 +63,7 @@ class GelabAgent(EnvironmentInteractingAgent):
 
         # 2. Decide
         messages = self.parser.env2messages4ask(
-            task=goal, environments=self._environments, actions=self._actions
+            task=with_hints(goal), environments=self._environments, actions=self._actions
         )
         # step_NNN.png keeps the real screen; model_image is what the model actually saw.
         record: dict = {"goal": goal, "model_image": [size, size] if size else [width, height]}

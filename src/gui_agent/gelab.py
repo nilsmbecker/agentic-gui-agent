@@ -21,7 +21,26 @@ if str(_GELAB_DIR) not in sys.path:
 
 from copilot_tools.parser_0920_summary import Parser0920Summary  # noqa: E402
 
-__all__ = ["Parser0920Summary", "parse_action", "pixels_to_data_url"]
+__all__ = ["HINTS", "Parser0920Summary", "parse_action", "pixels_to_data_url", "with_hints"]
+
+# Rendered by upstream's prompt builder as a "### HINT" block in every step (D5: instructions
+# before training). Added after MarkorCreateNote runs said COMPLETE while the note was still
+# unsaved in the editor (false_done, 2026-10-08): Markor only writes the file when you leave it.
+HINTS = [
+    "Before you output COMPLETE, make sure your changes are saved: if you are still in an editor"
+    " or the app shows a save icon, save or leave the editor first."
+]
+
+
+def with_hints(goal: str, hints: list[str] = HINTS) -> str:
+    """Goal text as sent to the model, with our hints appended.
+
+    Upstream's `env2messages4ask(..., hints=...)` builds a hint block but never puts it into the
+    prompt (`make_status_prompt` drops `hint_str`), so the hints travel inside the task text.
+    """
+    if not hints:
+        return goal
+    return goal + "\n\n### HINT:\n" + "\n".join(f"- {h}" for h in hints)
 
 
 def parse_action(parser: Parser0920Summary, text: str) -> dict:
