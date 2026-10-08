@@ -53,3 +53,17 @@ def test_gelab_parser_roundtrip():
     parsed = gelab.Parser0920Summary().str2action(raw)
     assert parsed["action"] == "CLICK" and parsed["point"] == [120, 880]
     assert to_android_actions(parsed, W, H).json_actions[0]["action_type"] == "click"
+
+
+def test_parse_action_keeps_type_point_and_abort_reason():
+    # The agent's real path: upstream action2action() drops TYPE's point and ABORT's value.
+    gelab = pytest.importorskip("gui_agent.gelab")
+    parser = gelab.Parser0920Summary()
+
+    typed = gelab.parse_action(parser, "<THINK> t </THINK>\nexplain:e\taction:TYPE\tvalue:Ada\tpoint:500,300")
+    assert to_android_actions(typed, W, H).json_actions == [
+        {"action_type": "input_text", "text": "Ada", "clear_text": True, "x": 540, "y": 720}
+    ]
+
+    aborted = gelab.parse_action(parser, "<THINK> t </THINK>\nexplain:e\taction:ABORT\tvalue:no such app")
+    assert to_android_actions(aborted, W, H).note == "ABORT: no such app"
