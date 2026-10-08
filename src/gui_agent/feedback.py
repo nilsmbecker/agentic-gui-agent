@@ -37,6 +37,6 @@ def no_effect_hint(last_action: dict, fraction: float) -> str | None:
     if kind in _NO_FEEDBACK or fraction >= MIN_CHANGE:
         return None
     return (
-        f"Your last action ({kind}) caused almost no visible change on the screen."
-        " If the task is already done, output COMPLETE; otherwise try a different action."
+        f"Your last action ({kind}) did not visibly change the screen."
+        " If the task is already complete, output COMPLETE now; otherwise try a different action."
     )

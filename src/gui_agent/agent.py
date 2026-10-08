@@ -13,7 +13,7 @@ from android_world.env import adb_utils, interface, json_action
 from gui_agent.actions import is_repeat, text_field_target, to_android_actions
 from gui_agent.config import Settings
 from gui_agent.feedback import changed_fraction, no_effect_hint
-from gui_agent.gelab import HINTS, Parser0920Summary, parse_action, pixels_to_data_url, with_hints
+from gui_agent.gelab import Parser0920Summary, parse_action, pixels_to_data_url, with_hints
 from gui_agent.llm_client import LLMClient
 from gui_agent.trajectory import TrajectoryLogger
 
@@ -66,19 +66,21 @@ class GelabAgent(EnvironmentInteractingAgent):
 
         # step_NNN.png keeps the real screen; model_image is what the model actually saw.
         record: dict = {"goal": goal, "model_image": [size, size] if size else [width, height]}
-        hints = HINTS
         if self._last_executed is not None:
             before, last_action = self._last_executed
             change = changed_fraction(before, pixels)
             feedback = no_effect_hint(last_action, change)
             record.update(screen_change=round(change, 5), feedback=feedback)
             if feedback:
-                hints = [*HINTS, feedback]
+                # GELab's trained channel for a user interjecting mid-task: upstream renders it as
+                # "the user's instruction to you" + "pay more attention to the user's last
+                # instruction". Appended to the task text as a hint, the model ignored it.
+                self._environments[-1]["user_comment"] = feedback
         self._last_executed = None
 
         # 2. Decide
         messages = self.parser.env2messages4ask(
-            task=with_hints(goal, hints), environments=self._environments, actions=self._actions
+            task=with_hints(goal), environments=self._environments, actions=self._actions
         )
         try:
             reply = self.llm.chat(messages)

@@ -42,3 +42,13 @@ def test_hints_reach_the_prompt_via_task_text():
     assert "### HINT" in _prompt_text(task=with_hints("Turn wifi on.")) and HINTS[0] in _prompt_text(
         task=with_hints("Turn wifi on.")
     )
+
+
+def test_user_comment_reaches_the_prompt_as_user_instruction():
+    # Structured feedback travels in GELab's trained "user interjects" channel.
+    act = {"cot": "c", "explain": "e", "action": "CLICK", "point": [750, 82], "summary": "s"}
+    shot = pixels_to_data_url(SCREEN, 728)
+    envs = [{"image": None, "user_comment": ""}, {"image": shot, "user_comment": "FB"}]
+    messages = Parser0920Summary().env2messages4ask(task="t", environments=envs, actions=[act])
+    texts = " ".join(c["text"] for c in messages[0]["content"] if c["type"] == "text")
+    assert "用户对你的指示：FB" in texts
