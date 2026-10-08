@@ -12,7 +12,8 @@ from android_world.env import adb_utils, interface, json_action
 
 from gui_agent.actions import is_repeat, text_field_target, to_android_actions
 from gui_agent.config import Settings
-from gui_agent.gelab import Parser0920Summary, parse_action, pixels_to_data_url, with_hints
+from gui_agent.feedback import changed_fraction, no_effect_hint
+from gui_agent.gelab import HINTS, Parser0920Summary, parse_action, pixels_to_data_url, with_hints
 from gui_agent.llm_client import LLMClient
 from gui_agent.trajectory import TrajectoryLogger
 
@@ -46,6 +47,8 @@ class GelabAgent(EnvironmentInteractingAgent):
         self._step = 0
         self._failures = 0
         self._repeats = 0
+        # (screenshot before, action) of the last executed step, for structured feedback.
+        self._last_executed: tuple | None = None
 
     def reset(self, go_home: bool = False) -> None:
         super().reset(go_home)
@@ -61,12 +64,22 @@ class GelabAgent(EnvironmentInteractingAgent):
             self._environments[-1]["image"] = None  # only the newest screenshot is sent
         self._environments.append({"image": pixels_to_data_url(pixels, size), "user_comment": ""})
 
-        # 2. Decide
-        messages = self.parser.env2messages4ask(
-            task=with_hints(goal), environments=self._environments, actions=self._actions
-        )
         # step_NNN.png keeps the real screen; model_image is what the model actually saw.
         record: dict = {"goal": goal, "model_image": [size, size] if size else [width, height]}
+        hints = HINTS
+        if self._last_executed is not None:
+            before, last_action = self._last_executed
+            change = changed_fraction(before, pixels)
+            feedback = no_effect_hint(last_action, change)
+            record.update(screen_change=round(change, 5), feedback=feedback)
+            if feedback:
+                hints = [*HINTS, feedback]
+        self._last_executed = None
+
+        # 2. Decide
+        messages = self.parser.env2messages4ask(
+            task=with_hints(goal, hints), environments=self._environments, actions=self._actions
+        )
         try:
             reply = self.llm.chat(messages)
         except (RuntimeError, OSError, ValueError, KeyError) as e:  # OSError covers URLError/timeouts
@@ -105,6 +118,7 @@ class GelabAgent(EnvironmentInteractingAgent):
             return self._finish(record, pixels, True)
 
         # 3. Act
+        self._last_executed = (pixels, parsed)
         try:
             for kwargs in translation.json_actions:
                 self.env.execute_action(json_action.JSONAction(**kwargs))
