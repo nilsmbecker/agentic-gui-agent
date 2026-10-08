@@ -22,6 +22,7 @@ import sys
 import tempfile
 import threading
 import time
+import types
 from pathlib import Path
 
 os.environ.setdefault("GRPC_VERBOSITY", "ERROR")
@@ -83,6 +84,44 @@ class EmulatorRecorder:
                 print(f"  ! recording {name} not found in {self.tmp}")
 
 
+def _fix_apk_install_on_windows() -> None:
+    """Let adb.exe read the temp APK that android_env installs (Windows + Python < 3.12 only).
+
+    android_env's `_install_apk` keeps a `NamedTemporaryFile` open while `adb install` reads it.
+    Before Python 3.12 (no `delete_on_close=False`) Windows locks that file for other processes,
+    so adb fails with "failed to open ...\\tmpXXXX.apk: No such file or directory".
+    This gives that one module a temp file that is written and closed before adb runs.
+    """
+    if sys.platform != "win32" or sys.version_info >= (3, 12):
+        return
+    from android_env.components import adb_call_parser
+
+    class ClosedTempFile:
+        def __init__(self, suffix: str = ""):
+            fd, self.name = tempfile.mkstemp(suffix=suffix)
+            os.close(fd)
+
+        def write(self, data: bytes) -> None:
+            Path(self.name).write_bytes(data)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            with contextlib.suppress(OSError):
+                os.remove(self.name)
+
+    def named_temporary_file(*args, **kwargs):
+        if "delete" in kwargs:  # the delete=False callers already work on Windows
+            return tempfile.NamedTemporaryFile(*args, **kwargs)
+        return ClosedTempFile(kwargs.get("suffix", ""))
+
+    shim = types.ModuleType("tempfile")
+    shim.__dict__.update(vars(tempfile))
+    shim.NamedTemporaryFile = named_temporary_file
+    adb_call_parser.tempfile = shim
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--task", help="AndroidWorld task class name, e.g. SystemWifiTurnOn")
@@ -94,6 +133,7 @@ def main() -> None:
     args = ap.parse_args()
 
     s = Settings.from_env()
+    _fix_apk_install_on_windows()
     env = env_launcher.load_and_setup_env(
         console_port=s.emulator_console_port,
         emulator_setup=args.perform_emulator_setup,
@@ -152,6 +192,7 @@ def main() -> None:
             "seconds": round(time.time() - start, 1),
             "model": s.llm_model,
             "quant": s.llm_quant,
+            "image_size": s.llm_image_size or "full",
             "platform": sys.platform,
             "commit": _git_commit(),
             "recordings": ";".join(recorder.parts) if recorder else "",
@@ -175,12 +216,24 @@ def _git_commit() -> str:
 
 
 def _append_csv(path: Path, row: dict) -> None:
-    new = not path.exists()
-    with path.open("a", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(row))
-        if new:
-            w.writeheader()
-        w.writerow(row)
+    """Append one row; if `row` brings new columns, rewrite the file with the merged header
+    (older rows get empty cells) so rows written before a new column stay aligned."""
+    rows: list[dict] = []
+    header: list[str] = []
+    if path.exists():
+        with path.open(newline="") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+            header = list(reader.fieldnames or [])
+    fields = header + [k for k in row if k not in header]
+    if path.exists() and fields == header:
+        with path.open("a", newline="") as f:
+            csv.DictWriter(f, fieldnames=fields).writerow(row)
+        return
+    with path.open("w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        w.writerows([*rows, row])
 
 
 if __name__ == "__main__":
