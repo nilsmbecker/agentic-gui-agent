@@ -10,7 +10,7 @@ from __future__ import annotations
 from android_world.agents.base_agent import AgentInteractionResult, EnvironmentInteractingAgent
 from android_world.env import adb_utils, interface, json_action
 
-from gui_agent.actions import is_repeat, to_android_actions
+from gui_agent.actions import is_repeat, text_field_target, to_android_actions
 from gui_agent.config import Settings
 from gui_agent.gelab import Parser0920Summary, parse_action, pixels_to_data_url
 from gui_agent.llm_client import LLMClient
@@ -85,6 +85,13 @@ class GelabAgent(EnvironmentInteractingAgent):
         self._repeats = self._repeats + 1 if is_repeat(prev, parsed) else 1
         self._actions.append(parsed)
         translation = to_android_actions(parsed, width, height)
+        for kwargs in translation.json_actions:
+            if kwargs["action_type"] == "input_text" and "x" not in kwargs:
+                # GELab often sends TYPE without a point; tap a text field first so the text arrives.
+                target = text_field_target(state.ui_elements)
+                if target:
+                    kwargs["x"], kwargs["y"] = target
+                    record["focus_tap"] = list(target)
         record.update(
             action=dict(parsed),
             executed=translation.json_actions,

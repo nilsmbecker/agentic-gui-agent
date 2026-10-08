@@ -57,6 +57,26 @@ def is_repeat(prev: dict | None, action: dict) -> bool:
     return all(prev.get(k) == action.get(k) for k in _IDENTITY_KEYS)
 
 
+def text_field_target(ui_elements) -> tuple[int, int] | None:
+    """Where to tap so that a TYPE without a point lands in a text field (D4 actionability).
+
+    `adb input text` only reaches a view that holds input focus. Markor's editor can show the
+    keyboard without holding it, and the text silently disappears (MarkorCreateNote runs,
+    2026-10-08). Prefer the focused editable field, else the largest visible one.
+    `ui_elements` are android_world UIElements (duck-typed, so this stays testable).
+    """
+    editable = [
+        e for e in ui_elements if e.is_editable and e.is_visible is not False and e.bbox_pixels is not None
+    ]
+    if not editable:
+        return None
+    target = next((e for e in editable if e.is_focused), None) or max(
+        editable, key=lambda e: e.bbox_pixels.area
+    )
+    x, y = target.bbox_pixels.center
+    return int(x), int(y)
+
+
 def to_android_actions(action: dict, screen_w: int, screen_h: int) -> Translation:
     """Map one parsed GELab action dict (from Parser0920Summary.str2action) to AndroidWorld."""
     kind = (action.get("action") or action.get("action_type") or "").upper()

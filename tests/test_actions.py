@@ -1,8 +1,10 @@
 """GELab -> AndroidWorld action mapping. Runs without emulator or model."""
 
+from types import SimpleNamespace
+
 import pytest
 
-from gui_agent.actions import denormalize, to_android_actions
+from gui_agent.actions import denormalize, text_field_target, to_android_actions
 
 W, H = 1080, 2400  # Pixel 6
 
@@ -67,3 +69,24 @@ def test_parse_action_keeps_type_point_and_abort_reason():
 
     aborted = gelab.parse_action(parser, "<THINK> t </THINK>\nexplain:e\taction:ABORT\tvalue:no such app")
     assert to_android_actions(aborted, W, H).note == "ABORT: no such app"
+
+
+def _el(x0, y0, x1, y1, editable=True, focused=False, visible=True):
+    box = SimpleNamespace(center=((x0 + x1) / 2, (y0 + y1) / 2), area=(x1 - x0) * (y1 - y0))
+    return SimpleNamespace(is_editable=editable, is_focused=focused, is_visible=visible, bbox_pixels=box)
+
+
+def test_text_field_target_prefers_focused_field():
+    big, small_focused = _el(0, 300, 1080, 2000), _el(80, 500, 640, 560, focused=True)
+    assert text_field_target([big, small_focused]) == (360, 530)
+
+
+def test_text_field_target_falls_back_to_largest_editable():
+    # Markor's editor after "OK": keyboard is up, but no field reports focus.
+    title, body = _el(0, 0, 1080, 200), _el(0, 300, 1080, 2000)
+    button = _el(900, 2100, 1080, 2200, editable=False)
+    assert text_field_target([title, body, button]) == (540, 1150)
+
+
+def test_text_field_target_none_without_editable_fields():
+    assert text_field_target([_el(0, 0, 10, 10, editable=False), _el(0, 0, 10, 10, visible=False)]) is None
