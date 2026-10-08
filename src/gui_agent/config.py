@@ -51,6 +51,7 @@ class Settings:
     llm_api_key: str
     llm_temperature: float
     llm_timeout_s: float
+    llm_image_size: int
     adb_path: str
     emulator_console_port: int
     transition_pause_s: float
@@ -68,6 +69,11 @@ class Settings:
             llm_api_key=env("LLM_API_KEY", "ollama"),
             llm_temperature=float(env("LLM_TEMPERATURE", "0.1")),
             llm_timeout_s=float(env("LLM_TIMEOUT_S", "180")),
+            # Screenshot sent to the model, squashed to N x N as gelab-zero's deployment does
+            # (mcp_server_config.yaml uses 728). Ollama never uses fewer than ~1024 image tokens
+            # (it upscales smaller images), so 1024 costs the same as 728 but keeps more detail.
+            # 0 = full-resolution PNG: ~2x the prompt tokens and step time (scripts/bench_image_size.py).
+            llm_image_size=int(env("LLM_IMAGE_SIZE", "1024")),
             adb_path=os.path.expanduser(env("ADB_PATH") or default_adb_path()),
             emulator_console_port=int(env("EMULATOR_CONSOLE_PORT", "5554")),
             transition_pause_s=float(env("TRANSITION_PAUSE_S", "1.5")),

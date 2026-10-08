@@ -12,7 +12,7 @@ from android_world.env import adb_utils, interface, json_action
 
 from gui_agent.actions import is_repeat, to_android_actions
 from gui_agent.config import Settings
-from gui_agent.gelab import Parser0920Summary, pixels_to_data_url
+from gui_agent.gelab import Parser0920Summary, parse_action, pixels_to_data_url
 from gui_agent.llm_client import LLMClient
 from gui_agent.trajectory import TrajectoryLogger
 
@@ -56,15 +56,17 @@ class GelabAgent(EnvironmentInteractingAgent):
         state = self.get_post_transition_state()
         pixels = state.pixels
         height, width = pixels.shape[:2]
+        size = self.settings.llm_image_size
         if self._environments:
             self._environments[-1]["image"] = None  # only the newest screenshot is sent
-        self._environments.append({"image": pixels_to_data_url(pixels), "user_comment": ""})
+        self._environments.append({"image": pixels_to_data_url(pixels, size), "user_comment": ""})
 
         # 2. Decide
         messages = self.parser.env2messages4ask(
             task=goal, environments=self._environments, actions=self._actions
         )
-        record: dict = {"goal": goal}
+        # step_NNN.png keeps the real screen; model_image is what the model actually saw.
+        record: dict = {"goal": goal, "model_image": [size, size] if size else [width, height]}
         try:
             reply = self.llm.chat(messages)
         except (RuntimeError, OSError, ValueError, KeyError) as e:  # OSError covers URLError/timeouts
@@ -73,9 +75,7 @@ class GelabAgent(EnvironmentInteractingAgent):
         record.update(model_output=reply.text, latency_s=round(reply.latency_s, 2), usage=reply.usage)
 
         try:
-            parsed = self.parser.str2action(reply.text)
-            parsed.setdefault("explain", "")
-            parsed = self.parser.action2action(parsed)  # validates required fields
+            parsed = parse_action(self.parser, reply.text)
         except (AssertionError, ValueError, KeyError) as e:
             record["parse_error"] = str(e)
             return self._fail(record, pixels, "parse_errors")
