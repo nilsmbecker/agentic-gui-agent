@@ -49,6 +49,8 @@ class GelabAgent(EnvironmentInteractingAgent):
         self._repeats = 0
         # (screenshot before, action) of the last executed step, for structured feedback.
         self._last_executed: tuple | None = None
+        # (action, count) of the same action having no visible effect in a row.
+        self._no_effect: tuple[dict, int] | None = None
 
     def reset(self, go_home: bool = False) -> None:
         super().reset(go_home)
@@ -69,7 +71,11 @@ class GelabAgent(EnvironmentInteractingAgent):
         if self._last_executed is not None:
             before, last_action = self._last_executed
             change = changed_fraction(before, pixels)
-            feedback = no_effect_hint(last_action, change)
+            times = 1
+            if self._no_effect and is_repeat(self._no_effect[0], last_action):
+                times = self._no_effect[1] + 1
+            feedback = no_effect_hint(last_action, change, times)
+            self._no_effect = (last_action, times) if feedback else None
             record.update(screen_change=round(change, 5), feedback=feedback)
             if feedback:
                 # GELab's trained channel for a user interjecting mid-task: upstream renders it as

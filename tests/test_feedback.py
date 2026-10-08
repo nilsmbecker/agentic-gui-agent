@@ -33,3 +33,10 @@ def test_small_icon_change_is_below_threshold_but_text_is_not():
 def test_no_feedback_for_actions_that_should_not_change_the_screen():
     assert no_effect_hint({"action": "WAIT"}, 0.0) is None
     assert no_effect_hint({"action": "COMPLETE"}, 0.0) is None
+
+
+def test_feedback_names_the_action_and_escalates_on_repeats():
+    click = {"action": "CLICK", "point": [750, 82]}
+    first = no_effect_hint(click, 0.0)
+    assert "CLICK at 750,82" in first and "times" not in first
+    assert "done this 2 times" in no_effect_hint(click, 0.0, times=2)

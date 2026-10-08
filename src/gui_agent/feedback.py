@@ -31,12 +31,21 @@ def changed_fraction(before: np.ndarray, after: np.ndarray) -> float:
     return float((diff > PIXEL_DELTA).mean())
 
 
-def no_effect_hint(last_action: dict, fraction: float) -> str | None:
-    """Hint for the next prompt if `last_action` barely changed the screen, else None."""
+def no_effect_hint(last_action: dict, fraction: float, times: int = 1) -> str | None:
+    """Hint for the next prompt if `last_action` barely changed the screen, else None.
+
+    `times`: how often this same action in a row had no visible effect. Round 2 (2026-10-08)
+    sent the same message after every repeat and the model kept repeating; round 3 names the
+    action and escalates.
+    """
     kind = (last_action.get("action") or "").upper()
     if kind in _NO_FEEDBACK or fraction >= MIN_CHANGE:
         return None
-    return (
-        f"Your last action ({kind}) did not visibly change the screen."
-        " If the task is already complete, output COMPLETE now; otherwise try a different action."
-    )
+    point = last_action.get("point")
+    where = f" at {point[0]},{point[1]}" if point else ""
+    text = f"Your last action ({kind}{where}) did not visibly change the screen."
+    if times > 1:
+        text += (
+            f" You have now done this {times} times without any visible effect; doing it again will not help."
+        )
+    return text + " If the task is already complete, output COMPLETE now; otherwise try a different action."
