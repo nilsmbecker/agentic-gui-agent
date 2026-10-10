@@ -1,8 +1,7 @@
 """GELab-Zero agent for AndroidWorld: one `step()` = observe -> decide -> act -> report done.
 
-This is the project's required shape (see docs/PLAN.md). Everything the agent
-saw and did in a step is returned in `AgentInteractionResult.data` and written
-to the trajectory log, so every failure can be traced back to a concrete step.
+Everything the agent saw and did in a step is returned in `AgentInteractionResult.data`
+and written to the trajectory log, so every failure can be traced back to a concrete step.
 """
 
 from __future__ import annotations
@@ -17,10 +16,9 @@ from gui_agent.gelab import Parser0920Summary, parse_action, pixels_to_data_url,
 from gui_agent.llm_client import LLMClient
 from gui_agent.trajectory import TrajectoryLogger
 
-# Bounded recovery (D4): give up after this many failed steps in a row
-# (unparseable reply or model/server error).
+# Give up after this many failed steps in a row (unparseable reply or model/server error).
 MAX_CONSECUTIVE_FAILURES = 3
-# Loop detection (D4): stop when the model emits the identical action this many times in a row.
+# Loop detection: stop when the model emits the identical action this many times in a row.
 MAX_REPEATED_ACTIONS = 3
 
 

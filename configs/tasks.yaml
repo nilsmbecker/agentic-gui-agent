@@ -1,22 +1,20 @@
-# AndroidWorld tasks we evaluate. Requirement (D1 slides 6-7): >= 3 tasks, at least one from
-# each of the three difficulty boxes on slide 7, 3 runs each, screen recording per run.
-# Every task below is taken from the box it is listed under on that slide.
-# `primary` = proposed final selection (confirm by Wed noon, see docs/PLAN.md M1).
-# `backup`  = swap in if a primary task turns out broken on the emulator.
+# AndroidWorld tasks we evaluate: one per difficulty tier, 3 runs each, a screen recording per run.
+# `primary` = the task we ran for the evaluation.
+# `backup`  = alternatives from the same tier, in case a primary task is broken on the emulator.
 # complexity = AndroidWorld's own difficulty score (max steps default = 10 x complexity).
 
 tiers:
-  warm_up:          # slide 7 "Warm-up", 2-5 steps
+  warm_up:          # 2-5 steps
     description: single app, few steps, state is directly checkable
     primary: SystemWifiTurnOn           # settings, complexity 1.0
     backup: [ClockTimerEntry, SystemCopyToClipboard, ContactsAddContact]
 
-  real_work:        # slide 7 "Real work", 6-20 steps
+  real_work:        # 6-20 steps
     description: one app, form filling / text entry, several screens
     primary: MarkorCreateNote           # markor, 1.6
     backup: [SimpleSmsSend, FilesMoveFile, SimpleCalendarAddOneEvent]
 
-  multi_app_memory: # slide 7 "Multi-app and memory", 9-60 steps
+  multi_app_memory: # 9-60 steps
     description: carry a value from one app into another (tests lost_value / wrong_app)
     primary: MarkorCreateNoteAndSms     # markor + simple sms messenger, 1.8
     backup: [BrowserMultiply, ExpenseAddMultipleFromMarkor]

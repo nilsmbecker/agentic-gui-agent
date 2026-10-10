@@ -8,26 +8,18 @@ dist/
 .pytest_cache/
 .ruff_cache/
 
-# Secrets / local config
+# Local config (copy .env.example to .env)
 .env
 
 # Editors / OS
 .idea/
 .vscode/
+.claude/
 .DS_Store
+__MACOSX/
 
-# Agent runs: raw output of every run stays local.
-# Curate the runs you want to submit into results/ (see CONTRIBUTING.md).
+# Run logs and recordings stay local; the submitted runs ship in the ZIP
 runs/
-
-# Screen recordings are too large for git -> shared team drive
 *.mp4
 *.webm
 *.mov
-
-# Course lab outputs (regenerated on each run)
-course/labs/D2/artifacts/
-course/labs/D3-code-example/agent_trace_*.txt
-
-# Personal Claude Code settings
-.claude/settings.local.json

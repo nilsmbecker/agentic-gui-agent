@@ -1,20 +1,20 @@
 # MarkorCreateNote: from 0/3 to 3/3 in four rounds
 
-Investigation protocol, 2026-10-08, Nils' Mac (Apple Silicon, arm64 emulator,
-`gelab-zero-4b-preview` q8_0, image size 1024, temperature 0.1). Written for the presentation:
-every claim points to a run folder, screenshot, experiment or commit. Code: branch
-`fix/type-focus`. Raw runs in `runs/MarkorCreateNote/`, handed-in runs in
-`results/MarkorCreateNote/`.
+Investigation log, 2026-10-08, on Nils' Mac (Apple Silicon, arm64 emulator,
+`gelab-zero-4b-preview` q8_0, image size 1024, temperature 0.1). Every claim points to a run,
+screenshot, experiment or commit. The three graded runs are in
+`runs/MarkorCreateNote/MarkorCreateNote/`. Every earlier run named below is listed with its commit
+and result in `runs/MarkorCreateNote_fix_history/results.csv`; their folders stayed on Nils' machine.
 
 ## TL;DR
 
-| | Graded (seeds 0–2) | What blocked success | Lever (D4) | Commit |
+| | Graded (seeds 0-2) | What blocked success | Lever | Commit |
 |---|---|---|---|---|
-| Baseline | **0/3**, checker 0/3 | Typed text never reached the editor | – | `fce0c3b` |
+| Baseline | **0/3**, checker 0/3 | Typed text never reached the editor | - | `fce0c3b` |
 | Round 1 | **0/3**, checker **3/3** | Note saved, but agent kept tapping the greyed-out save icon | Actionability, goal clarity | `89c4f63` |
 | Round 2 | **1/3**, checker 3/3 | Feedback "no visible change" sent, model sometimes ignored it | Structured feedback | `4aa4fa3` |
 | Round 3 | 1/2 (3rd run stopped), checker 2/2 | Model read "no change" as "saving failed" and retried | Structured feedback | `b076b1d` |
-| **Round 4** | **3/3**, checker 3/3 | – | **Observable state** | **`06af22e`** |
+| **Round 4** | **3/3**, checker 3/3 | - | **Observable state** | **`06af22e`** |
 
 The model's plan was right from the start (open Markor → + → name → OK → type text). Every
 fix was in the interface between the model and the phone: what our agent does with the model's
@@ -100,7 +100,7 @@ turns grey); 2nd and 3rd tap ≤ 0.01 % (cursor blink).
 
 ## Round 2: "no visible change" feedback → 1/3
 
-**Idea (D4 structured feedback):** after every executed action, measure the changed fraction of
+**Idea (structured feedback):** after every executed action, measure the changed fraction of
 the screen (`feedback.py: changed_fraction`, status bar cropped). Below 0.1 %, tell the model.
 The threshold was checked on the round-1 screenshots first: meaningful actions ≥ 1.1 %, the save
 taps 0.07 % and 0.01 %.
@@ -153,7 +153,7 @@ accessibility tree around the tap point.
 
 The "greyed out" state that is 240 px on screen is a plain flag in the accessibility tree.
 
-**Change (`06af22e`, D4 observable state):** `actions.py: element_at()` finds the smallest labelled
+**Change (`06af22e`, observable state):** `actions.py: element_at()` finds the smallest labelled
 element under the tap point in the new screen. If it is disabled, the feedback says so. Logged as
 `tapped_element`. General: it describes whatever was tapped.
 
@@ -170,7 +170,7 @@ Model's reasoning right after:
 
 ![round 4 success](img/markor_round4_success.png)
 
-**Graded round 4** (`06af22e`, handed in, `results/MarkorCreateNote/`):
+**Graded round 4** (`06af22e`, handed in, `runs/MarkorCreateNote/MarkorCreateNote/`):
 
 | Seed | Run | Result | Checker | Stop | Steps | Time |
 |---|---|---|---|---|---|---|
@@ -179,20 +179,20 @@ Model's reasoning right after:
 | 2 | `20261008-195738_r3` | **SUCCESS** | 1.0 | complete | 7 | 1:50 |
 
 All three show the same chain in `steps.jsonl`: `focus_tap` at both TYPEs, one save tap,
-`screen_change` 0.06–0.07 %, `tapped_element: {label: Save, enabled: false}`, feedback, COMPLETE.
+`screen_change` 0.06-0.07 %, `tapped_element: {label: Save, enabled: false}`, feedback, COMPLETE.
 Verification before that: seed 1 (`20261008-195008_r1`, the round-3 failure) SUCCESS.
 
 ---
 
 ## Failure analysis (course taxonomy)
 
-| Failure | Where | Tag | Evidence | D4 lever that fixed it |
+| Failure | Where | Tag | Evidence | Lever that fixed it |
 |---|---|---|---|---|
-| Text typed into nothing | Baseline, all seeds, step 4 | `grounding` (action didn't land) | panels 2–3, Exp A/B | **Actionability**: tap a text field before TYPE |
+| Text typed into nothing | Baseline, all seeds, step 4 | `grounding` (action didn't land) | panels 2-3, Exp A/B | **Actionability**: tap a text field before TYPE |
 | COMPLETE with the note unsaved | `20261008-172101_r1`, step 5 | `false_done` | save icon still active, checker 0.0 | **Goal clarity**: save hint |
-| Save tapped again after saving | Rounds 1–3 | `loop` symptom; root: misread screen state | 240 px icon change, model's reasoning | **Structured feedback** + **observable state** |
+| Save tapped again after saving | Rounds 1-3 | `loop` symptom; root: misread screen state | 240 px icon change, model's reasoning | **Structured feedback** + **observable state** |
 
-## What we learned (slides)
+## What we learned
 
 1. **Reproduce without the model.** Replaying logged actions (Exp A) proved the first bug was in
    the interface, not the model, in 2 minutes.
@@ -210,8 +210,8 @@ Verification before that: seed 1 (`20261008-195008_r1`, the round-3 failure) SUC
 ## Limitations and side findings
 
 - **Comparability:** task 2 now runs on `06af22e`; task 3 (`MarkorCreateNoteAndSms`) was graded on
-  `fce0c3b`. The guide wants the same code for all 9 runs, so tasks 1 and 3 should be re-run on
-  `06af22e` (or the slide must say so).
+  `fce0c3b`. Ideally all 9 runs use the same code; tasks 1 and 3 were not re-run on `06af22e`,
+  and the presentation says so.
 - **3 runs per round** are a small sample; at temperature 0.1 the same seed can succeed in one run
   and fail in the next (round 2, seed 0).
 - `element_at()` looks at the screen **after** the tap, so after a tap that opens a new screen it
@@ -231,4 +231,5 @@ python docs/analysis/tools/replay_markor.py runs/MarkorCreateNote/20261008-16411
 python docs/analysis/tools/probe_save_a11y.py runs/MarkorCreateNote/20261008-184332_r2/steps.jsonl
 ```
 
-The tools are investigation scripts (copied as used), not part of the agent.
+The tools are investigation scripts (kept as used), not part of the agent. They need a running
+emulator and the run folders named above.

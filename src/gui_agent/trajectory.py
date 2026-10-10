@@ -1,7 +1,7 @@
 """Per-run trajectory logging: one JSONL line per step + the screenshot it saw.
 
 Layout:  runs/<task>/<run_id>/steps.jsonl, step_000.png, ..., summary.json
-These logs are the raw material for the failure analysis (docs/analysis/).
+These logs are the raw material for the failure analysis.
 """
 
 from __future__ import annotations

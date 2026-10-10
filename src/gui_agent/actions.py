@@ -51,18 +51,18 @@ _IDENTITY_KEYS = ("action", "point", "point1", "point2", "value")
 
 
 def is_repeat(prev: dict | None, action: dict) -> bool:
-    """True if `action` is exactly the previous action again (loop evidence, D4 bounded recovery)."""
+    """True if `action` is exactly the previous action again (used for loop detection)."""
     if prev is None or (action.get("action") or "").upper() in _REPEATABLE:
         return False
     return all(prev.get(k) == action.get(k) for k in _IDENTITY_KEYS)
 
 
 def text_field_target(ui_elements) -> tuple[int, int] | None:
-    """Where to tap so that a TYPE without a point lands in a text field (D4 actionability).
+    """Where to tap so that a TYPE without a point lands in a text field.
 
     `adb input text` only reaches a view that holds input focus. Markor's editor can show the
-    keyboard without holding it, and the text silently disappears (MarkorCreateNote runs,
-    2026-10-08). Prefer the focused editable field, else the largest visible one.
+    keyboard without holding it, and then the text silently disappears (MarkorCreateNote).
+    Prefer the focused editable field, else the largest visible one.
     `ui_elements` are android_world UIElements (duck-typed, so this stays testable).
     """
     editable = [

@@ -23,11 +23,10 @@ from copilot_tools.parser_0920_summary import Parser0920Summary  # noqa: E402
 
 __all__ = ["HINTS", "Parser0920Summary", "parse_action", "pixels_to_data_url", "with_hints"]
 
-# Rendered by upstream's prompt builder as a "### HINT" block in every step (D5: instructions
-# before training). Added after MarkorCreateNote runs said COMPLETE while the note was still
-# unsaved in the editor (false_done, 2026-10-08): Markor only writes the file when you leave it.
-# v2: v1 ("if the app shows a save icon, save") made the model tap the already-greyed-out
-# save icon 3 times (loop) instead of finishing; v2 says when saving is done.
+# Sent as a "### HINT" block in every step. MarkorCreateNote runs said COMPLETE while the note
+# was still unsaved in the editor (false_done): Markor only writes the file when you save or
+# leave it. The second sentence matters: without it the model kept tapping the already greyed-out
+# save icon instead of finishing.
 HINTS = [
     "Before you output COMPLETE, make sure your changes are saved. Tap the save icon once:"
     " a greyed-out save icon means the changes are already saved, so then output COMPLETE"

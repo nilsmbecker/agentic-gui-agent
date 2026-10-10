@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gui-agent"
 version = "0.1.0"
-description = "GELab-Zero GUI agent on AndroidWorld - Agentic AI in Business (TUM)"
+description = "GELab-Zero GUI agent on AndroidWorld - Agentic AI in Modern Business (TUM)"
 requires-python = ">=3.11"
 dependencies = [
   "numpy",
@@ -29,7 +29,7 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 110
 target-version = "py311"
-extend-exclude = ["third_party", "course", "models"]
+extend-exclude = ["third_party", "models"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]

@@ -15,7 +15,7 @@ $Avd = "AndroidWorldAvd"
 $CmdlineToolsZip = "https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip"
 
 foreach ($tool in "winget", "git", "conda") {
-    if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { throw "$tool not found on PATH. See docs/SETUP.md." }
+    if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { throw "$tool not found on PATH. See SETUP.md." }
 }
 
 Write-Host "==> winget packages (JDK 17, ffmpeg)"
@@ -58,8 +58,22 @@ if (Test-Path $AvdConfig) {
     Set-Content -Path $AvdConfig -Value $cfg -Encoding ascii
 }
 
-Write-Host "==> Submodules"
-git submodule update --init
+Write-Host "==> Third-party code (android_world, gelab-zero)"
+if (Test-Path .git) {
+    git submodule update --init
+    if ($LASTEXITCODE -ne 0) { throw "git submodule update failed" }
+} else {
+    # Unpacked from the ZIP (no .git): fetch the same upstream commits the submodules pin.
+    function Get-PinnedRepo($dir, $url, $sha) {
+        if ((Test-Path $dir) -and (Get-ChildItem $dir -Force | Select-Object -First 1)) { return }
+        git init -q $dir
+        git -C $dir fetch -q --depth 1 $url $sha
+        if ($LASTEXITCODE -ne 0) { throw "could not fetch $url" }
+        git -C $dir checkout -q FETCH_HEAD
+    }
+    Get-PinnedRepo "third_party\android_world" "https://github.com/google-research/android_world" "2dfc5ca3dc590efe9c72ce768f2b04182f2f75c7"
+    Get-PinnedRepo "third_party\gelab-zero" "https://github.com/stepfun-ai/gelab-zero" "7b619f6f67d2b1101021fc453cb27bd48a29e4f2"
+}
 
 Write-Host "==> conda env 'gui-agent' (Python 3.11)"
 if (conda env list | Select-String -Pattern '^gui-agent\s') {

@@ -1,8 +1,8 @@
-"""Structured feedback (D4): tell the model when its last action had no visible effect.
+"""Structured feedback: tell the model when its last action had no visible effect.
 
-Added after MarkorCreateNote round 1 (2026-10-08): the note was saved correctly, but the only
-visible effect was Markor's save icon turning grey (~240 px), which the 4B model never noticed.
-It kept tapping save until the loop guard stopped it, without ever saying COMPLETE.
+In MarkorCreateNote the note was saved correctly, but the only visible effect was the save icon
+turning grey (~240 px), which the 4B model never noticed. It kept tapping save until the loop
+guard stopped it, without ever saying COMPLETE. See docs/analysis/MarkorCreateNote_investigation.md.
 """
 
 from __future__ import annotations
@@ -36,10 +36,10 @@ def no_effect_hint(
 ) -> str | None:
     """Hint for the next prompt if `last_action` barely changed the screen, else None.
 
-    `times`: how often this same action in a row had no visible effect. Round 2 (2026-10-08)
-    sent the same message after every repeat and the model kept repeating; round 3 names the
-    action and escalates. `element`: (label, enabled) of the tapped element after the tap;
-    round 3 still read "no change" as "it failed", so round 4 says when the target is disabled.
+    `times`: how often this same action in a row had no visible effect. A repeated, identical
+    message was ignored, so the hint names the action and gets firmer with every repeat.
+    `element`: (label, enabled) of the tapped element after the tap. "No visible change" alone
+    was read as "it failed", so the hint also says when the target is disabled.
     """
     kind = (last_action.get("action") or "").upper()
     if kind in _NO_FEEDBACK or fraction >= MIN_CHANGE:

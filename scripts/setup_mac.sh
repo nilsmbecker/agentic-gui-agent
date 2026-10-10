@@ -33,8 +33,22 @@ fi
 # aborts with "SYS_KEYS has no physical keys" during --perform-emulator-setup.
 sed -i '' 's/^hw.keyboard=no$/hw.keyboard=yes/' "$HOME/.android/avd/$AVD.avd/config.ini"
 
-echo "==> Submodules"
-git submodule update --init
+echo "==> Third-party code (android_world, gelab-zero)"
+if [ -d .git ]; then
+  git submodule update --init
+else
+  # Unpacked from the ZIP (no .git): fetch the same upstream commits the submodules pin.
+  fetch_pinned() {
+    if [ -n "$(ls -A "$1" 2>/dev/null)" ]; then return; fi
+    git init -q "$1"
+    git -C "$1" fetch -q --depth 1 "$2" "$3"
+    git -C "$1" checkout -q FETCH_HEAD
+  }
+  fetch_pinned third_party/android_world https://github.com/google-research/android_world \
+    2dfc5ca3dc590efe9c72ce768f2b04182f2f75c7
+  fetch_pinned third_party/gelab-zero https://github.com/stepfun-ai/gelab-zero \
+    7b619f6f67d2b1101021fc453cb27bd48a29e4f2
+fi
 
 echo "==> conda env 'gui-agent' (Python 3.11)"
 if conda env list | grep -q "^gui-agent "; then

@@ -33,7 +33,7 @@ def check(name: str, ok: bool, hint: str = "") -> None:
 
 s = Settings.from_env()
 
-check("Python >= 3.11", sys.version_info >= (3, 11), "conda activate gui-agent  (see docs/SETUP.md)")
+check("Python >= 3.11", sys.version_info >= (3, 11), "conda activate gui-agent  (see SETUP.md)")
 check(
     ".env present",
     (REPO_ROOT / ".env").exists(),
@@ -44,7 +44,7 @@ for sub in ("android_world", "gelab-zero"):
     check(
         f"submodule third_party/{sub}",
         sub_dir.exists() and any(sub_dir.iterdir()),
-        "git submodule update --init",
+        "git submodule update --init, or re-run the setup script (SETUP.md, step 2)",
     )
 check(
     "ffmpeg on PATH",

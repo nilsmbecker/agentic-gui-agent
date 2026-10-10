@@ -19,8 +19,12 @@ from gui_agent.config import Settings
 steps_file = Path(sys.argv[1])
 s = Settings.from_env()
 summary = json.loads((steps_file.parent / "summary.json").read_text())
-env = env_launcher.load_and_setup_env(console_port=s.emulator_console_port, emulator_setup=False, adb_path=s.adb_path)
-task_cls = registry.TaskRegistry().get_registry(registry.TaskRegistry.ANDROID_WORLD_FAMILY)["MarkorCreateNote"]
+env = env_launcher.load_and_setup_env(
+    console_port=s.emulator_console_port, emulator_setup=False, adb_path=s.adb_path
+)
+task_cls = registry.TaskRegistry().get_registry(registry.TaskRegistry.ANDROID_WORLD_FAMILY)[
+    "MarkorCreateNote"
+]
 random.seed(summary["seed"])
 task = task_cls(task_cls.generate_random_params())
 env.reset(go_home=True)
@@ -37,7 +41,8 @@ save = recs[5]["executed"][0]  # the first save tap, in pixels
 def dump(label: str) -> None:
     els = env.get_state().ui_elements
     near = [
-        e for e in els
+        e
+        for e in els
         if e.bbox_pixels and e.bbox_pixels.y_max < 400 and (e.is_clickable or e.content_description)
     ]
     print(f"--- {label}")

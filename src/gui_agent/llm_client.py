@@ -1,7 +1,7 @@
 """Minimal client for any OpenAI-compatible /v1/chat/completions endpoint.
 
-Plain urllib, no SDK -- same idea as course/labs/D1/common.py, so every
-request is easy to inspect. Works with local Ollama (default), vLLM, etc.
+Plain urllib, no SDK, so every request is easy to inspect.
+Works with local Ollama (default), vLLM, etc.
 """
 
 from __future__ import annotations
